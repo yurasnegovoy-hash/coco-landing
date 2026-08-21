@@ -1757,6 +1757,7 @@
     payload.ts = new Date().toLocaleString('ru-RU');
     try { if (LEAD_ENDPOINT) { await fetch(LEAD_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } } catch (e) {}
     try { if (window.ym && YM_ID) { ym(YM_ID, 'reachGoal', goal); } } catch (e) {}
+    setTimeout(function () { window.location.href = '/thanks/'; }, 350);
   }
 
   // intro preloader
