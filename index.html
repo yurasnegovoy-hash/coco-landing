@@ -1743,7 +1743,7 @@
 <script>
   // ═══ ЛИДЫ: конфиг ═══
   // LEAD_ENDPOINT — URL Cloudflare Worker (прокси в Telegram). Пока пусто — форма только показывает "спасибо".
-  const LEAD_ENDPOINT = '';
+  const LEAD_ENDPOINT = 'https://coco-leads.coco-leads-worker.workers.dev';
   const YM_ID = 0; // номер счётчика Яндекс.Метрики (тот же, что в <head>)
   async function sendLead(payload, goal) {
     payload.page = location.href;
