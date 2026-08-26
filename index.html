@@ -2071,7 +2071,8 @@
       var y = el.getBoundingClientRect().top + window.pageYOffset - 70;
       window.scrollTo({ top: y, behavior: 'auto' });
     }
-    window.addEventListener('load', function () { setTimeout(jump, 1400); });
+    window.addEventListener('load', function () { setTimeout(jump, 700); });
+    setTimeout(jump, 2500);
   })();
 </script>
 <style>
