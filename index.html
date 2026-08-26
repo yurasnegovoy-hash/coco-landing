@@ -2061,8 +2061,15 @@
     function jump() {
       var el = document.querySelector(hash);
       if (!el) return;
-      var y = el.getBoundingClientRect().top + window.pageYOffset - 70; // отступ под шапку
-      window.scrollTo({ top: y, behavior: 'smooth' });
+      // секции проявляются по скроллу: при прыжке по якорю показываем цель и всё выше сразу
+      var secs = document.querySelectorAll('section, .case, .reveal');
+      for (var i = 0; i < secs.length; i++) {
+        secs[i].classList.add('in');
+        if (secs[i] === el) break;
+      }
+      el.classList.add('in');
+      var y = el.getBoundingClientRect().top + window.pageYOffset - 70;
+      window.scrollTo({ top: y, behavior: 'auto' });
     }
     window.addEventListener('load', function () { setTimeout(jump, 1400); });
   })();
