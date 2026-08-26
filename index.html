@@ -2053,6 +2053,19 @@
       f.innerHTML = '<div style="flex:1 0 100%;text-align:center;color:#fff;font-weight:700;font-size:18px;padding:8px 0">Заявка принята — свяжемся в течение 15 минут ✓</div>';
     });
   })();
+
+  // якорь из URL: прелоадер съедает нативный переход, скроллим сами после загрузки
+  (function () {
+    var hash = location.hash;
+    if (!hash || hash.length < 2) return;
+    function jump() {
+      var el = document.querySelector(hash);
+      if (!el) return;
+      var y = el.getBoundingClientRect().top + window.pageYOffset - 70; // отступ под шапку
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+    window.addEventListener('load', function () { setTimeout(jump, 1400); });
+  })();
 </script>
 <style>
   html, body { overflow-x: hidden; max-width: 100%; }
