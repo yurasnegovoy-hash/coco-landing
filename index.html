@@ -1573,9 +1573,9 @@
           <input type="text" placeholder="Имя">
           <input type="tel" placeholder="+7 ___ ___-__-__">
           <div class="qchannel">
-            <a class="qch sel" href="tel:+79123202267">Телефонный звонок</a>
-            <a class="qch qch-tg" href="https://t.me/+79123202267" target="_blank" rel="noopener">Telegram</a>
-            <a class="qch qch-wa" href="https://wa.me/79123202267" target="_blank" rel="noopener">WhatsApp</a>
+            <button type="button" class="qch sel">Телефонный звонок</button>
+            <button type="button" class="qch qch-tg">Telegram</button>
+            <button type="button" class="qch qch-wa">WhatsApp</button>
           </div>
           <button class="btn primary" id="qSubmit">Получить разбор упаковки</button>
           <div class="qlegal">Нажимая кнопку, вы соглашаетесь с <a href="#">политикой обработки персональных данных</a></div>
@@ -1802,9 +1802,31 @@
       b.classList.add('sel');
     }));
   document.getElementById('qSubmit').addEventListener('click', () => {
-    const qf = document.querySelector('.qform');
-    const name = qf.querySelector('input[type=text]').value.trim();
-    const phone = qf.querySelector('input[type=tel]').value.trim();
+    const qf = document.querySelector('.qstep[data-step="6"] .qform') || document.querySelector('.qform');
+    const nameI = qf.querySelector('input[type=text]');
+    const phoneI = qf.querySelector('input[type=tel]');
+    const name = nameI.value.trim();
+    const phone = phoneI.value.trim();
+    const digits = phone.replace(/\D/g, '');
+
+    // без телефона заявка бесполезна: подсвечиваем и не отправляем
+    function warn(el, msg) {
+      el.style.borderColor = '#E8501F';
+      el.focus();
+      var t = qf.querySelector('.qerr');
+      if (!t) {
+        t = document.createElement('div');
+        t.className = 'qerr';
+        t.style.cssText = 'color:#E8501F;font-size:13px;margin-top:-4px';
+        phoneI.insertAdjacentElement('afterend', t);
+      }
+      t.textContent = msg;
+    }
+    if (digits.length < 10) { warn(phoneI, 'Укажите телефон, чтобы мы прислали разбор'); return; }
+    if (!name) { warn(nameI, 'Как к вам обращаться?'); return; }
+    var err = qf.querySelector('.qerr'); if (err) err.remove();
+    nameI.style.borderColor = ''; phoneI.style.borderColor = '';
+
     const channel = (document.querySelector('.qch.sel')?.textContent || '').trim();
     sendLead({ form: 'Квиз', name, phone, channel, answers: quizAnswers.filter(Boolean) }, 'lead_quiz');
     show(7);
@@ -2048,7 +2070,8 @@
       e.preventDefault();
       const inp = f.querySelectorAll('input');
       const name = inp[0].value.trim(), phone = inp[1].value.trim();
-      if (!phone) { inp[1].focus(); return; }
+      if (phone.replace(/\D/g, '').length < 10) { inp[1].style.borderColor = '#E8501F'; inp[1].focus(); return; }
+      inp[1].style.borderColor = '';
       sendLead({ form: 'Финальная форма', name, phone }, 'lead_final');
       f.innerHTML = '<div style="flex:1 0 100%;text-align:center;color:#fff;font-weight:700;font-size:18px;padding:8px 0">Заявка принята — свяжемся в течение 15 минут ✓</div>';
     });
