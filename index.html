@@ -1760,6 +1760,7 @@
   const LEAD_ENDPOINT = 'https://coco-leads.coco-leads-worker.workers.dev';
   const YM_ID = 111832430; // номер счётчика Яндекс.Метрики (тот же, что в <head>)
   async function sendLead(payload, goal) {
+    try { if (window.__leadCompleted) window.__leadCompleted(); } catch (e) {}
     payload.page = location.href;
     payload.ts = new Date().toLocaleString('ru-RU');
     try { if (LEAD_ENDPOINT) { await fetch(LEAD_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } } catch (e) {}
@@ -2137,6 +2138,74 @@
     // 5. клик по телефону — это тоже конверсия, звонок мимо форм
     document.querySelectorAll('a[href^="tel:"]').forEach(function (a) {
       a.addEventListener('click', function () { goal('phone_click'); });
+    });
+  })();
+
+  // ═══ ЛОВЕЦ НЕДОЗАПОЛНЕННЫХ ЗАЯВОК ═══
+  // человек ввёл телефон, но не нажал кнопку — не теряем контакт
+  (function () {
+    var sent = false;          // уже отправляли черновик
+    var completed = false;     // заявка ушла нормально, черновик не нужен
+    var timer = null;
+
+    window.__leadCompleted = function () { completed = true; };
+
+    function collect() {
+      var forms = [
+        { sel: '.qstep[data-step="6"] .qform', name: 'Квиз' },
+        { sel: '.final-form', name: 'Финальная форма' },
+        { sel: '#leadForm', name: 'Поп-ап' }
+      ];
+      for (var i = 0; i < forms.length; i++) {
+        var f = document.querySelector(forms[i].sel);
+        if (!f) continue;
+        var p = f.querySelector('input[type=tel]');
+        var n = f.querySelector('input[type=text]');
+        if (!p) continue;
+        var phone = (p.value || '').trim();
+        if (phone.replace(/\D/g, '').length >= 10) {
+          return { form: forms[i].name, phone: phone, name: (n && n.value || '').trim() };
+        }
+      }
+      return null;
+    }
+
+    function flush(reason) {
+      if (sent || completed) return;
+      var d = collect();
+      if (!d) return;
+      sent = true;
+      var payload = {
+        form: 'НЕЗАВЕРШЁННАЯ · ' + d.form,
+        name: d.name || 'не указано',
+        phone: d.phone,
+        answers: (typeof quizAnswers !== 'undefined' ? quizAnswers.filter(Boolean) : []),
+        page: location.href,
+        ts: new Date().toLocaleString('ru-RU'),
+        draft: true,
+        reason: reason
+      };
+      try {
+        var blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+        if (navigator.sendBeacon && reason !== 'idle') navigator.sendBeacon(LEAD_ENDPOINT, blob);
+        else fetch(LEAD_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive: true });
+      } catch (e) {}
+      try { if (window.ym && YM_ID) ym(YM_ID, 'reachGoal', 'lead_draft'); } catch (e) {}
+    }
+
+    // ввод телефона: ждём 25 секунд бездействия
+    document.addEventListener('input', function (e) {
+      if (!e.target.matches || !e.target.matches('input[type=tel]')) return;
+      clearTimeout(timer);
+      if ((e.target.value || '').replace(/\D/g, '').length >= 10) {
+        timer = setTimeout(function () { flush('idle'); }, 25000);
+      }
+    }, true);
+
+    // уход со страницы или сворачивание вкладки
+    window.addEventListener('pagehide', function () { flush('leave'); });
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') flush('hidden');
     });
   })();
 </script>
