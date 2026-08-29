@@ -1828,7 +1828,12 @@
     nameI.style.borderColor = ''; phoneI.style.borderColor = '';
 
     const channel = (document.querySelector('.qch.sel')?.textContent || '').trim();
-    sendLead({ form: 'Квиз', name, phone, channel, answers: quizAnswers.filter(Boolean) }, 'lead_quiz');
+    const ans = quizAnswers.filter(Boolean);
+    sendLead({ form: 'Квиз', name, phone, channel, answers: ans }, 'lead_quiz');
+    // целевой ЛПР: крупный оборот, федеральные сети или горящий запуск
+    const joined = ans.join(' ').toLowerCase();
+    const isQualified = /300 млн|1 млрд|более 1|федеральн/.test(joined) || /уже горит|этом месяце/.test(joined);
+    if (isQualified) { try { if (window.ym && YM_ID) ym(YM_ID, 'reachGoal', 'lead_qualified'); } catch (e) {} }
     show(7);
   });
   back.addEventListener('click', () => show(cur - 1));
@@ -2096,6 +2101,43 @@
     }
     window.addEventListener('load', function () { setTimeout(jump, 700); });
     setTimeout(jump, 2500);
+  })();
+
+  // ═══ МИКРОЦЕЛИ ДЛЯ ОБУЧЕНИЯ ДИРЕКТА ═══
+  (function () {
+    function goal(g) { try { if (window.ym && YM_ID) ym(YM_ID, 'reachGoal', g); } catch (e) {} }
+    var fired = {};
+    function once(g) { if (fired[g]) return; fired[g] = 1; goal(g); }
+
+    // 1. дольше 30 секунд на сайте
+    setTimeout(function () { once('stay_30s'); }, 30000);
+
+    // 2. долистал до блока кейсов
+    var cases = document.getElementById('cases');
+    if (cases && 'IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { once('scroll_cases'); io.disconnect(); } });
+      }, { threshold: 0.25 });
+      io.observe(cases);
+    }
+
+    // 3. начал заполнять квиз (первый ответ)
+    document.querySelectorAll('.qopt').forEach(function (b) {
+      b.addEventListener('click', function () { once('quiz_start'); }, true);
+    });
+
+    // 4. дошёл до шага с контактами
+    var step6 = document.querySelector('.qstep[data-step="6"]');
+    if (step6 && 'MutationObserver' in window) {
+      new MutationObserver(function () {
+        if (step6.classList.contains('on')) once('quiz_contacts');
+      }).observe(step6, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    // 5. клик по телефону — это тоже конверсия, звонок мимо форм
+    document.querySelectorAll('a[href^="tel:"]').forEach(function (a) {
+      a.addEventListener('click', function () { goal('phone_click'); });
+    });
   })();
 </script>
 <style>
