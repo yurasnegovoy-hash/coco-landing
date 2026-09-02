@@ -1586,7 +1586,7 @@
         <div class="qdone">
           <div class="big">🎉</div>
           <h3>Заявка принята</h3>
-          <p style="color:var(--muted);font-size:14.5px">Менеджер свяжется с вами в течение 15 минут в рабочее время. Пока ждёте, посмотрите наши кейсы на Behance</p>
+          <p style="color:var(--muted);font-size:14.5px" id="quizDoneText">Менеджер свяжется с вами в ближайшее время</p>
         </div>
       </div>
 
@@ -1832,6 +1832,41 @@
     // поп-ап появляется позже — цепляем и его
     new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
   })();
+
+  // ═══ ТЕКСТ ОТВЕТА ПО ВРЕМЕНИ РАБОТЫ (по Москве) ═══
+  function replyPromise() {
+    var msk;
+    try {
+      msk = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Moscow' }));
+    } catch (e) {
+      msk = new Date();
+    }
+    var day = msk.getDay();          // 0 вс, 6 сб
+    var hour = msk.getHours();
+    var workday = day >= 1 && day <= 5;
+    var working = workday && hour >= 9 && hour < 17;
+
+    if (working) {
+      return { title: 'Заявка принята', text: 'Свяжемся с вами в течение 15 минут' };
+    }
+    if (day === 6 || day === 0) {
+      return {
+        title: 'Заявка принята',
+        text: 'К сожалению, сегодня у нас выходной. Свяжемся с вами в понедельник с 09:00'
+      };
+    }
+    if (day === 5 && hour >= 17) {
+      return {
+        title: 'Заявка принята',
+        text: 'Рабочий день уже закончился. Свяжемся с вами в понедельник с 09:00'
+      };
+    }
+    return {
+      title: 'Заявка принята',
+      text: 'Свяжемся с вами в рабочее время, с 09:00 до 17:00 по Москве'
+    };
+  }
+  window.replyPromise = replyPromise;
   async function sendLead(payload, goal) {
     try { if (window.__leadCompleted) window.__leadCompleted(); } catch (e) {}
     payload.page = location.href;
@@ -2135,10 +2170,11 @@
       if (phone.replace(/\D/g, '').length < 10) { inp[1].style.borderColor = '#E8501F'; inp[1].focus(); return; }
       if (isBot(form)) { return; }
       sendLead({ form: 'Поп-ап', name: inp[0].value.trim(), phone }, 'lead_popup');
+      var rp = replyPromise();
       ov.querySelector('.modal').innerHTML =
         '<button class="modal-x" id="leadClose2" aria-label="Закрыть">\u2715</button>' +
-        '<div class="modal-done"><div class="big">\u2713</div><h3>Заявка принята</h3>' +
-        '<p>Свяжемся с вами в течение 15 минут и подготовим разбор вашего дизайна.</p></div>';
+        '<div class="modal-done"><div class="big">\u2713</div><h3>' + rp.title + '</h3>' +
+        '<p>' + rp.text + ' и подготовим разбор вашей упаковки.</p></div>';
       ov.querySelector('#leadClose2').addEventListener('click', close);
     });
     if (!sessionStorage.getItem('leadModalShown')) {
@@ -2159,7 +2195,8 @@
       inp[1].style.borderColor = '';
       if (isBot(f)) return;
       sendLead({ form: 'Финальная форма', name, phone }, 'lead_final');
-      f.innerHTML = '<div style="flex:1 0 100%;text-align:center;color:#fff;font-weight:700;font-size:18px;padding:8px 0">Заявка принята — свяжемся в течение 15 минут ✓</div>';
+      var rpf = replyPromise();
+      f.innerHTML = '<div style="flex:1 0 100%;text-align:center;color:#fff;font-weight:700;font-size:18px;padding:8px 0">✓ ' + rpf.title + '<div style="font-weight:500;font-size:15px;color:#C9C3B8;margin-top:6px">' + rpf.text + '</div></div>';
     });
   })();
 

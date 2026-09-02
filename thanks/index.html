@@ -95,8 +95,8 @@
   <main class="wrap">
     <div class="card">
       <div class="check">✓</div>
-      <h1>Заявка принята</h1>
-      <p class="sub">Менеджер свяжется с вами <b>в течение 15 минут</b> в рабочее время и уточнит детали для разбора упаковки</p>
+      <h1 id="thTitle">Заявка принята</h1>
+      <p class="sub" id="thText">Менеджер свяжется с вами <b>в течение 15 минут</b> и уточнит детали для разбора упаковки</p>
 
       <div class="next">
         <div class="next-t">Что дальше</div>
@@ -115,5 +115,27 @@
   </main>
 
   <footer class="foot">CocoBranding · брендинг и дизайн упаковки для FMCG</footer>
+
+<script>
+  // текст обещания зависит от рабочего времени по Москве
+  (function () {
+    var msk;
+    try { msk = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Moscow' })); }
+    catch (e) { msk = new Date(); }
+    var day = msk.getDay(), hour = msk.getHours();
+    var workday = day >= 1 && day <= 5;
+    var el = document.getElementById('thText');
+    if (!el) return;
+    if (workday && hour >= 9 && hour < 17) {
+      el.innerHTML = 'Менеджер свяжется с вами <b>в течение 15 минут</b> и уточнит детали для разбора упаковки';
+    } else if (day === 0 || day === 6) {
+      el.innerHTML = 'Сегодня у нас выходной. Свяжемся с вами <b>в понедельник с 09:00</b> и подготовим разбор упаковки';
+    } else if (day === 5 && hour >= 17) {
+      el.innerHTML = 'Рабочий день уже закончился. Свяжемся с вами <b>в понедельник с 09:00</b> и подготовим разбор упаковки';
+    } else {
+      el.innerHTML = 'Свяжемся с вами в рабочее время, <b>с 09:00 до 17:00 по Москве</b>, и подготовим разбор упаковки';
+    }
+  })();
+</script>
 </body>
 </html>
