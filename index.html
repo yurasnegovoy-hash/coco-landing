@@ -878,6 +878,8 @@
   .final .subnote { margin: 0 auto 30px; }
   .final-form { display: flex; gap: 10px; max-width: 560px; margin: 44px auto 0; flex-wrap: wrap; justify-content: center; }
   .final-form .final-submit { flex: 1 0 100%; min-width: 0; margin-top: 6px; }
+  .final-form .tg-input { flex: 1 0 100%; }
+  .tg-input::placeholder { font-size: 15px; }
   .final-form input {
     flex: 1; min-width: 200px; font-family: var(--font); font-size: 16px; padding: 15px 18px;
     border-radius: 999px; border: 1.5px solid rgba(255,255,255,.25); background: rgba(255,255,255,.07); color: #fff; outline: none;
@@ -1570,8 +1572,9 @@
         <div class="qt">Последний шаг</div>
         <h3>Куда прислать разбор?</h3>
         <div class="qform">
-          <input type="text" placeholder="Имя">
-          <input type="tel" placeholder="+7 ___ ___-__-__">
+          <input type="text" name="name" placeholder="Имя">
+          <input type="tel" name="phone" placeholder="+7 ___ ___-__-__">
+          <input type="text" name="tg" class="tg-input" placeholder="@ник в Telegram, если не дозвонимся">
           <div class="qchannel">
             <button type="button" class="qch sel">Телефонный звонок</button>
             <button type="button" class="qch qch-tg">Telegram</button>
@@ -1723,8 +1726,9 @@
     <h2>Покажем, как ваш продукт может выглядеть на полке</h2>
     <p class="subnote" style="color:#fff;max-width:52ch">Бесплатный разбор упаковки и подборка кейсов из вашей категории. Разбор ни к чему вас не обязывает</p>
     <div class="final-form">
-      <input type="text" placeholder="Имя">
-      <input type="tel" placeholder="+7 ___ ___-__-__">
+      <input type="text" name="name" placeholder="Имя">
+      <input type="tel" name="phone" placeholder="+7 ___ ___-__-__">
+      <input type="text" name="tg" class="tg-input" placeholder="@ник в Telegram, если не дозвонимся">
       <button class="btn primary final-submit">Получить разбор</button>
     </div>
     <div class="final-alt">Удобнее в мессенджере? Напишите нам в <a class="tg" href="#">Telegram</a> или <a class="wa" href="#">WhatsApp</a></div>
@@ -1746,8 +1750,9 @@
     <h3 id="leadTitle">Разберём вашу упаковку и покажем точки роста</h3>
     <p>За 20 минут покажем, что мешает продажам на полке и как усилить упаковку. Плюс подборка кейсов из вашей категории. Бесплатно и без обязательств.</p>
     <form class="modal-form" id="leadForm">
-      <input type="text" placeholder="Имя" required="">
-      <input type="tel" placeholder="+7 ___ ___-__-__" required="">
+      <input type="text" name="name" placeholder="Имя" required="">
+      <input type="tel" name="phone" placeholder="+7 ___ ___-__-__" required="">
+      <input type="text" name="tg" class="tg-input" placeholder="@ник в Telegram, если не дозвонимся">
       <button class="btn primary" type="submit">Получить разбор бесплатно</button>
     </form>
     <div class="modal-legal">Нажимая кнопку, вы соглашаетесь с <a href="#">политикой обработки персональных данных</a></div>
@@ -1770,6 +1775,20 @@
     if (Date.now() - __formShownAt < 3000) return true;
     return false;
   }
+  // ═══ НИК В ТЕЛЕГРАМЕ ═══
+  // человек может вписать ссылку, @ник или просто ник — приводим к виду @ник
+  function tgFrom(form) {
+    var el = form && form.querySelector('input[name=tg]');
+    var v = (el && el.value || '').trim();
+    if (!v) return '';
+    v = v.replace(/^https?:\/\//i, '')
+         .replace(/^(t\.me|telegram\.me)\//i, '')
+         .replace(/^@+/, '')
+         .replace(/\s+/g, '');
+    if (!v || v.length < 3) return '';
+    return '@' + v;
+  }
+
   // добавляем honeypot во все формы страницы
   (function () {
     var forms = ['.qstep[data-step="6"] .qform', '.final-form', '#leadForm'];
@@ -1912,8 +1931,8 @@
     }));
   document.getElementById('qSubmit').addEventListener('click', () => {
     const qf = document.querySelector('.qstep[data-step="6"] .qform') || document.querySelector('.qform');
-    const nameI = qf.querySelector('input[type=text]');
-    const phoneI = qf.querySelector('input[type=tel]');
+    const nameI = qf.querySelector('input[name=name]');
+    const phoneI = qf.querySelector('input[name=phone]');
     const name = nameI.value.trim();
     const phone = phoneI.value.trim();
     const digits = phone.replace(/\D/g, '');
@@ -1939,7 +1958,7 @@
     if (isBot(qf)) return;
     const channel = (document.querySelector('.qch.sel')?.textContent || '').trim();
     const ans = quizAnswers.filter(Boolean);
-    sendLead({ form: 'Квиз', name, phone, channel, answers: ans }, 'lead_quiz');
+    sendLead({ form: 'Квиз', name, phone, tg: tgFrom(qf), channel, answers: ans }, 'lead_quiz');
     // целевой ЛПР: крупный оборот, федеральные сети или горящий запуск
     const joined = ans.join(' ').toLowerCase();
     const isQualified = /300 млн|1 млрд|более 1|федеральн/.test(joined) || /уже горит|этом месяце/.test(joined);
@@ -2164,12 +2183,13 @@
     document.getElementById('leadForm').addEventListener('submit', e => {
       e.preventDefault();
       const form = e.target;
-      const inp = form.querySelectorAll('input:not(.hp-field)');
-      const phone = inp[1].value.trim();
+      const nameI = form.querySelector('input[name=name]');
+      const phoneI = form.querySelector('input[name=phone]');
+      const phone = phoneI.value.trim();
       // боты пишут в телефон текст: пускаем только настоящие номера
-      if (phone.replace(/\D/g, '').length < 10) { inp[1].style.borderColor = '#E8501F'; inp[1].focus(); return; }
+      if (phone.replace(/\D/g, '').length < 10) { phoneI.style.borderColor = '#E8501F'; phoneI.focus(); return; }
       if (isBot(form)) { return; }
-      sendLead({ form: 'Поп-ап', name: inp[0].value.trim(), phone }, 'lead_popup');
+      sendLead({ form: 'Поп-ап', name: nameI.value.trim(), phone, tg: tgFrom(form) }, 'lead_popup');
       var rp = replyPromise();
       ov.querySelector('.modal').innerHTML =
         '<button class="modal-x" id="leadClose2" aria-label="Закрыть">\u2715</button>' +
@@ -2189,12 +2209,13 @@
     const btn = f.querySelector('.final-submit');
     btn.addEventListener('click', e => {
       e.preventDefault();
-      const inp = f.querySelectorAll('input');
-      const name = inp[0].value.trim(), phone = inp[1].value.trim();
-      if (phone.replace(/\D/g, '').length < 10) { inp[1].style.borderColor = '#E8501F'; inp[1].focus(); return; }
-      inp[1].style.borderColor = '';
+      const nameI = f.querySelector('input[name=name]');
+      const phoneI = f.querySelector('input[name=phone]');
+      const name = nameI.value.trim(), phone = phoneI.value.trim();
+      if (phone.replace(/\D/g, '').length < 10) { phoneI.style.borderColor = '#E8501F'; phoneI.focus(); return; }
+      phoneI.style.borderColor = '';
       if (isBot(f)) return;
-      sendLead({ form: 'Финальная форма', name, phone }, 'lead_final');
+      sendLead({ form: 'Финальная форма', name, phone, tg: tgFrom(f) }, 'lead_final');
       var rpf = replyPromise();
       f.innerHTML = '<div style="flex:1 0 100%;text-align:center;color:#fff;font-weight:700;font-size:18px;padding:8px 0">✓ ' + rpf.title + '<div style="font-weight:500;font-size:15px;color:#C9C3B8;margin-top:6px">' + rpf.text + '</div></div>';
     });
@@ -2277,11 +2298,11 @@
         var f = document.querySelector(forms[i].sel);
         if (!f) continue;
         var p = f.querySelector('input[type=tel]');
-        var n = f.querySelector('input[type=text]');
+        var n = f.querySelector('input[name=name]');
         if (!p) continue;
         var phone = (p.value || '').trim();
         if (phone.replace(/\D/g, '').length >= 10) {
-          return { form: forms[i].name, phone: phone, name: (n && n.value || '').trim() };
+          return { form: forms[i].name, phone: phone, name: (n && n.value || '').trim(), tg: tgFrom(f) };
         }
       }
       return null;
@@ -2296,6 +2317,7 @@
         form: 'НЕЗАВЕРШЁННАЯ · ' + d.form,
         name: d.name || 'не указано',
         phone: d.phone,
+        tg: d.tg || '',
         answers: (typeof quizAnswers !== 'undefined' ? quizAnswers.filter(Boolean) : []),
         page: location.href,
         ts: new Date().toLocaleString('ru-RU'),
@@ -2310,11 +2332,15 @@
       try { if (window.ym && YM_ID) ym(YM_ID, 'reachGoal', 'lead_draft'); } catch (e) {}
     }
 
-    // ввод телефона: ждём 25 секунд бездействия
+    // ввод телефона или ника: ждём 25 секунд бездействия
     document.addEventListener('input', function (e) {
-      if (!e.target.matches || !e.target.matches('input[type=tel]')) return;
+      if (!e.target.matches) return;
+      var isPhone = e.target.matches('input[type=tel]');
+      var isTg = e.target.matches('input[name=tg]');
+      if (!isPhone && !isTg) return;
       clearTimeout(timer);
-      if ((e.target.value || '').replace(/\D/g, '').length >= 10) {
+      // ник дописывают уже после телефона: перезапускаем ожидание, чтобы не отправить черновик посреди набора
+      if (isTg || (e.target.value || '').replace(/\D/g, '').length >= 10) {
         timer = setTimeout(function () { flush('idle'); }, 25000);
       }
     }, true);
